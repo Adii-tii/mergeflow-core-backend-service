@@ -555,15 +555,12 @@ exports.analyzePrByNumber = async (req, res) => {
         // For now, we'll try to update the PR record in the DB if it exists.
         const fullName = `${owner}/${name}`;
         try {
-            // Find PR by repo full name and number to attach the analysis
-            // We use raw mongodb query or db.js helper
             const repo = await db.getRepoByFullName(fullName);
             if (repo) {
-                const PR = require("../models/PullRequest");
-                await PR.findOneAndUpdate(
-                    { repository: repo._id, number: Number(number) },
-                    { $set: { aiAnalysis: analysis } }
-                );
+                const pr = await github.getPullRequest(owner, name, Number(number), token);
+                if (pr) {
+                    await db.updatePR(pr.id, { aiAnalysis: analysis });
+                }
             }
         } catch (dbErr) {
             console.warn("Could not save AI analysis to DB:", dbErr.message);
